@@ -16,6 +16,7 @@ pub mod rpc_types;
 
 // Those tests doesn't work on windowns
 // TODO (Davidson): work on windows?
+
 #[cfg(all(test, not(target_os = "windows")))]
 mod tests {
     use std::fs;
@@ -95,6 +96,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_rescan() {
         let (_proc, client) = start_florestad();
 
@@ -103,6 +105,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_stop() {
         let (mut _proc, client) = start_florestad();
 
@@ -111,6 +114,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_get_blockchaininfo() {
         let (_proc, client) = start_florestad();
 
@@ -124,6 +128,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_get_roots() {
         let (_proc, client) = start_florestad();
 
@@ -133,6 +138,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_get_block() {
         let (_proc, client) = start_florestad();
 
@@ -149,6 +155,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_get_block_hash() {
         let (_proc, client) = start_florestad();
 
@@ -163,6 +170,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_get_block_header() {
         let (_proc, client) = start_florestad();
 
@@ -173,6 +181,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_get_block_filter() {
         let (_proc, client) = start_florestad();
 
@@ -183,6 +192,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_load_descriptor() {
         let (_proc, client) = start_florestad();
 
@@ -195,6 +205,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_get_height() {
         let (_proc, client) = start_florestad();
 
@@ -203,6 +214,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "tarpaulin"]
     fn test_send_raw_transaction() {
         let (_proc, client) = start_florestad();
 

@@ -3,6 +3,9 @@
 //! attacks, like eclipse attacks.
 
 use std::collections::HashMap;
+use std::fs::File;
+use std::io;
+use std::io::Read;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::net::Ipv6Addr;
@@ -10,11 +13,14 @@ use std::str::FromStr;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
+use async_std::fs::DirBuilder;
 use bitcoin::p2p::address::AddrV2;
 use bitcoin::p2p::address::AddrV2Message;
 use bitcoin::p2p::ServiceFlags;
+use floresta_chain::get_chain_dns_seeds;
 use floresta_chain::Network;
 use log::info;
+use rand::Rng;
 use serde::Deserialize;
 use serde::Serialize;
 use thiserror::Error;
@@ -52,6 +58,24 @@ pub struct LocalAddress {
     port: u16,
     /// Random id for this peer
     pub id: usize,
+}
+/// Seed Data for paesing in tests.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct SeedData {
+    /// An actual address
+    address: SeedAddress,
+    /// Last time we successfully connected to this peer, only relevant is state == State::Tried
+    last_connected: u64,
+    /// Our local state for this peer, as defined in AddressState
+    state: AddressState,
+    /// Network services announced by this peer
+    pub services: u64,
+    /// Network port this peers listens to
+    port: u16,
+}
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+struct SeedAddress {
+    V4: Ipv4Addr,
 }
 #[derive(Debug, Error)]
 pub enum AddrManError {}
@@ -495,4 +519,101 @@ pub enum Address {
     Cjdns(Ipv6Addr),
     /// I2p address, a 32 byte node key
     I2p([u8; 32]),
+}
+
+#[cfg(test)]
+
+fn load_addresses_from_json(file_path: &str) -> io::Result<Vec<LocalAddress>> {
+    use rand::Rng;
+
+    let mut contents = String::new();
+    File::open(file_path)?.read_to_string(&mut contents)?;
+
+    let seeds: Vec<SeedData> = serde_json::from_str(&contents).expect("JSON not well-formatted");
+    let mut addresses = Vec::new();
+    let mut rng = rand::thread_rng();
+
+    for seed in seeds {
+        let state = match seed.state {
+            AddressState::Tried(time) => AddressState::Tried(time),
+            _ => continue,
+        };
+
+        let _address = AddrV2::Ipv4(seed.address.V4);
+
+        let local_address = LocalAddress {
+            address: _address,
+            last_connected: seed.last_connected,
+            state: state,
+            services: ServiceFlags::from(seed.services),
+            port: seed.port,
+            id: rng.gen(),
+        };
+        addresses.push(local_address);
+    }
+
+    Ok(addresses)
+}
+#[test]
+fn test_parse() {
+    let signet_address =
+        load_addresses_from_json("./src/p2p_wire/seeds/signet_seeds.json").unwrap();
+
+    assert!(!signet_address.is_empty());
+    let random = rand::thread_rng().gen_range(1..=14);
+    let loc_adr_1 = LocalAddress::from(signet_address[random].address.clone());
+    assert_eq!(loc_adr_1.address, signet_address[random].address);
+}
+#[test]
+fn test_address_man() {
+    let mut address_man = AddressMan {
+        addresses: HashMap::new(),
+        good_addresses: Vec::new(),
+        utreexo_addresses: Vec::new(),
+    };
+
+    let signet_address =
+        load_addresses_from_json("./src/p2p_wire/seeds/signet_seeds.json").unwrap();
+
+    address_man.push_addresses(&signet_address);
+
+    assert!(!address_man.good_addresses.is_empty());
+
+    assert!(!address_man.utreexo_addresses.is_empty());
+
+    assert!(!address_man.get_addresses_to_send().is_empty());
+
+    assert!(address_man
+        .get_address_to_connect(ServiceFlags::default(), true)
+        .is_some());
+
+    assert!(address_man
+        .get_address_to_connect(ServiceFlags::default(), false)
+        .is_some());
+
+    assert!(address_man.dump_peers("./data").is_ok());
+
+    assert!(address_man.get_random_good_address().is_some());
+
+    assert!(address_man.get_random_utreexo_address().is_some());
+
+    assert!(!AddressMan::get_net_seeds(Network::Signet).is_empty());
+    assert!(!AddressMan::get_net_seeds(Network::Bitcoin).is_empty());
+    assert!(!AddressMan::get_net_seeds(Network::Regtest).is_empty());
+    assert!(!AddressMan::get_net_seeds(Network::Testnet).is_empty());
+
+    assert!(address_man
+        .get_seeds_from_dns(&get_chain_dns_seeds(Network::Signet)[0], 8333)
+        .is_ok());
+
+    assert!(address_man
+        .start_addr_man(
+            "./data".to_string(),
+            8333,
+            Network::Signet,
+            &get_chain_dns_seeds(Network::Signet)
+        )
+        .is_ok());
+
+    address_man.rearrange_buckets();
 }

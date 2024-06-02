@@ -1370,6 +1370,7 @@ mod test {
     use bitcoin::hashes::hex::FromHex;
     use bitcoin::Block;
     use bitcoin::BlockHash;
+    use rand::Rng;
     use rustreexo::accumulator::proof::Proof;
 
     use super::BlockchainInterface;
@@ -1486,5 +1487,142 @@ mod test {
             }
             panic!("Block {} is not in the store", i);
         }
+    }
+    #[test]
+    fn test_get_block_header_by_height() {
+        let file = include_bytes!("./testdata/signet_headers.zst");
+        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
+        let mut cursor = Cursor::new(uncompressed);
+
+        let test_id = rand::random::<u64>();
+        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
+        let chain =
+            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
+        let mut headers: Vec<BlockHeader> = Vec::new();
+        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
+            headers.push(header);
+        }
+        headers.remove(0);
+
+        assert!(chain.push_headers(headers.clone(), 1).is_ok());
+        assert_eq!(chain.get_block_header_by_height(1), headers[0]);
+    }
+    #[test]
+    fn test_reindex_chain() {
+        let file = include_bytes!("./testdata/signet_headers.zst");
+        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
+        let mut cursor = Cursor::new(uncompressed);
+
+        let test_id = rand::random::<u64>();
+        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
+        let chain =
+            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
+        let mut headers: Vec<BlockHeader> = Vec::new();
+        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
+            headers.push(header);
+        }
+        headers.remove(0);
+        chain.push_headers(headers, 1).unwrap();
+
+        assert_eq!(chain.reindex_chain().depth, 2015);
+    }
+    #[test]
+    fn test_load_acc() {
+        let file = include_bytes!("./testdata/signet_headers.zst");
+        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
+        let mut cursor = Cursor::new(uncompressed);
+
+        let test_id = rand::random::<u64>();
+        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
+        let chain =
+            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
+        let mut headers: Vec<BlockHeader> = Vec::new();
+        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
+            headers.push(header);
+        }
+        headers.remove(0);
+
+        chain.push_headers(headers, 1).unwrap();
+
+        write_lock!(chain).best_block = chain.reindex_chain();
+
+        assert_eq!(chain.get_validation_index().unwrap(), 2015);
+        let _ = ChainState::<KvChainStore>::load_acc(&read_lock!(chain).chainstore);
+    }
+    #[test]
+    fn test_update_tip() {
+        let file = include_bytes!("./testdata/signet_headers.zst");
+        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
+        let mut cursor = Cursor::new(uncompressed);
+
+        let test_id = rand::random::<u64>();
+        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
+        let chain =
+            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
+        let mut headers: Vec<BlockHeader> = Vec::new();
+        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
+            headers.push(header);
+        }
+        headers.remove(0);
+
+        chain.update_tip(headers[1].prev_blockhash, 1);
+        assert_eq!(
+            read_lock!(chain).best_block.best_block,
+            headers[1].prev_blockhash
+        );
+    }
+    #[test]
+    fn test_get_block_locator() {
+        let file = include_bytes!("./testdata/signet_headers.zst");
+        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
+        let mut cursor = Cursor::new(uncompressed);
+
+        let test_id = rand::random::<u64>();
+        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
+        let chain =
+            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
+        let mut headers: Vec<BlockHeader> = Vec::new();
+        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
+            headers.push(header);
+        }
+        headers.remove(0);
+        chain.push_headers(headers, 1).unwrap();
+        write_lock!(chain).best_block = chain.reindex_chain();
+
+        assert!(chain.get_validation_index().is_ok());
+
+        assert!(!chain
+            .get_block_locator_for_tip(read_lock!(chain).best_block.best_block)
+            .unwrap()
+            .is_empty());
+
+        assert!(!chain.get_block_locator().unwrap().is_empty())
+    }
+
+    #[test]
+    fn test_invalidate_block() {
+        let file = include_bytes!("./testdata/signet_headers.zst");
+        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
+        let mut cursor = Cursor::new(uncompressed);
+
+        let test_id = rand::random::<u64>();
+        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
+        let chain =
+            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
+        let mut headers: Vec<BlockHeader> = Vec::new();
+        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
+            headers.push(header);
+        }
+        headers.remove(0);
+        chain.push_headers(headers.clone(), 1).unwrap();
+        write_lock!(chain).best_block = chain.reindex_chain();
+
+        let random_height = rand::thread_rng().gen_range(1..=2014);
+
+        chain
+            .invalidate_block(headers[random_height].prev_blockhash)
+            .unwrap();
+
+        assert_eq!(chain.get_height().unwrap() as usize, random_height - 1);
     }
 }
