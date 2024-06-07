@@ -1383,6 +1383,25 @@ mod test {
     use crate::AssumeValidArg;
     use crate::KvChainStore;
     use crate::Network;
+
+    fn get_test_chain_state() -> (ChainState<KvChainStore>, Vec<BlockHeader>) {
+        let file = include_bytes!("./testdata/signet_headers.zst");
+        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
+        let mut cursor = Cursor::new(uncompressed);
+
+        let test_id = rand::random::<u64>();
+        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
+        let chain =
+            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
+        let mut headers: Vec<BlockHeader> = Vec::new();
+        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
+            headers.push(header);
+        }
+        headers.remove(0);
+
+        (chain, headers)
+    }
+
     #[test]
     fn accept_mainnet_headers() {
         // Accepts the first 10235 mainnet headers
@@ -1490,60 +1509,22 @@ mod test {
     }
     #[test]
     fn test_get_block_header_by_height() {
-        let file = include_bytes!("./testdata/signet_headers.zst");
-        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
-        let mut cursor = Cursor::new(uncompressed);
-
-        let test_id = rand::random::<u64>();
-        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
-        let chain =
-            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
-        let mut headers: Vec<BlockHeader> = Vec::new();
-        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
-            headers.push(header);
-        }
-        headers.remove(0);
+        let (chain, headers) = get_test_chain_state();
 
         assert!(chain.push_headers(headers.clone(), 1).is_ok());
         assert_eq!(chain.get_block_header_by_height(1), headers[0]);
     }
     #[test]
     fn test_reindex_chain() {
-        let file = include_bytes!("./testdata/signet_headers.zst");
-        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
-        let mut cursor = Cursor::new(uncompressed);
-
-        let test_id = rand::random::<u64>();
-        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
-        let chain =
-            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
-        let mut headers: Vec<BlockHeader> = Vec::new();
-        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
-            headers.push(header);
-        }
-        headers.remove(0);
+        let (chain, headers) = get_test_chain_state();
         chain.push_headers(headers, 1).unwrap();
 
         assert_eq!(chain.reindex_chain().depth, 2015);
     }
     #[test]
     fn test_load_acc() {
-        let file = include_bytes!("./testdata/signet_headers.zst");
-        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
-        let mut cursor = Cursor::new(uncompressed);
-
-        let test_id = rand::random::<u64>();
-        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
-        let chain =
-            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
-        let mut headers: Vec<BlockHeader> = Vec::new();
-        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
-            headers.push(header);
-        }
-        headers.remove(0);
-
+        let (chain, headers) = get_test_chain_state();
         chain.push_headers(headers, 1).unwrap();
-
         write_lock!(chain).best_block = chain.reindex_chain();
 
         assert_eq!(chain.get_validation_index().unwrap(), 2015);
@@ -1551,20 +1532,7 @@ mod test {
     }
     #[test]
     fn test_update_tip() {
-        let file = include_bytes!("./testdata/signet_headers.zst");
-        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
-        let mut cursor = Cursor::new(uncompressed);
-
-        let test_id = rand::random::<u64>();
-        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
-        let chain =
-            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
-        let mut headers: Vec<BlockHeader> = Vec::new();
-        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
-            headers.push(header);
-        }
-        headers.remove(0);
-
+        let (chain, headers) = get_test_chain_state();
         chain.update_tip(headers[1].prev_blockhash, 1);
         assert_eq!(
             read_lock!(chain).best_block.best_block,
@@ -1573,19 +1541,7 @@ mod test {
     }
     #[test]
     fn test_get_block_locator() {
-        let file = include_bytes!("./testdata/signet_headers.zst");
-        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
-        let mut cursor = Cursor::new(uncompressed);
-
-        let test_id = rand::random::<u64>();
-        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
-        let chain =
-            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
-        let mut headers: Vec<BlockHeader> = Vec::new();
-        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
-            headers.push(header);
-        }
-        headers.remove(0);
+        let (chain, headers) = get_test_chain_state();
         chain.push_headers(headers, 1).unwrap();
         write_lock!(chain).best_block = chain.reindex_chain();
 
@@ -1601,19 +1557,7 @@ mod test {
 
     #[test]
     fn test_invalidate_block() {
-        let file = include_bytes!("./testdata/signet_headers.zst");
-        let uncompressed: Vec<u8> = zstd::decode_all(std::io::Cursor::new(file)).unwrap();
-        let mut cursor = Cursor::new(uncompressed);
-
-        let test_id = rand::random::<u64>();
-        let chainstore = KvChainStore::new(format!("./data/{test_id}/")).unwrap();
-        let chain =
-            ChainState::<KvChainStore>::new(chainstore, Network::Signet, AssumeValidArg::Hardcoded);
-        let mut headers: Vec<BlockHeader> = Vec::new();
-        while let Ok(header) = BlockHeader::consensus_decode(&mut cursor) {
-            headers.push(header);
-        }
-        headers.remove(0);
+        let (chain, headers) = get_test_chain_state();
         chain.push_headers(headers.clone(), 1).unwrap();
         write_lock!(chain).best_block = chain.reindex_chain();
 

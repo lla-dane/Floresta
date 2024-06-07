@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta-chain/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta-cli/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta-common/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta-compact-filters/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta-electrum/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta-watch-only/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta-wire/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/floresta/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/florestad/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
