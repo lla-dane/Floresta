@@ -597,10 +597,9 @@ mod test {
         let hex = Vec::from_hex(thing).unwrap();
         deserialize(&hex).unwrap()
     }
-    use crate::merkle::MerkleProof;
-
     use super::memory_database::MemoryDatabase;
     use super::AddressCache;
+    use crate::merkle::MerkleProof;
     fn get_test_cache() -> AddressCache<MemoryDatabase> {
         let database = MemoryDatabase::new();
         AddressCache::new(database)
@@ -665,6 +664,11 @@ mod test {
             get_spk_hash(&transaction.output[0].script_pubkey),
         );
 
+        assert_eq!(
+            script_hash,
+            get_spk_hash(&transaction.output[0].script_pubkey)
+        );
+
         let balance = cache.get_address_balance(&script_hash);
         let history = cache.get_address_history(&script_hash).unwrap();
         let cached_merkle_block = cache.get_merkle_proof(&transaction.txid()).unwrap();
@@ -716,7 +720,10 @@ mod test {
             get_spk_hash(&transaction.output[1].script_pubkey),
         );
 
-        assert_eq!(cache.find_unconfirmed().unwrap()[0].txid(), transaction.txid());
+        assert_eq!(
+            cache.find_unconfirmed().unwrap()[0].txid(),
+            transaction.txid()
+        );
     }
     #[test]
     fn test_process_block() {

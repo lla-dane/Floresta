@@ -499,21 +499,23 @@ pub enum Address {
 
 #[cfg(test)]
 mod test {
-    use std::{
-        collections::HashMap,
-        fs::File,
-        io::{self, Read},
-        net::Ipv4Addr,
-    };
+    use std::collections::HashMap;
+    use std::fs::File;
+    use std::io::Read;
+    use std::io::{self};
+    use std::net::Ipv4Addr;
 
-    use bitcoin::p2p::{address::AddrV2, ServiceFlags};
-    use floresta_chain::{get_chain_dns_seeds, Network};
+    use bitcoin::p2p::address::AddrV2;
+    use bitcoin::p2p::ServiceFlags;
+    use floresta_chain::get_chain_dns_seeds;
+    use floresta_chain::Network;
     use rand::Rng;
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
+    use serde::Serialize;
 
+    use super::AddressState;
+    use super::LocalAddress;
     use crate::address_man::AddressMan;
-
-    use super::{AddressState, LocalAddress};
 
     /// Seed Data for paesing in tests.
     #[derive(Debug, Clone, PartialEq, Deserialize)]

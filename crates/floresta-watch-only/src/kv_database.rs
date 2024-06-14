@@ -168,10 +168,15 @@ mod test {
     use bitcoin::consensus::deserialize;
     use bitcoin::hashes::hex::FromHex;
     use bitcoin::hashes::sha256;
-    use bitcoin::{Address, Transaction};
+    use bitcoin::Address;
+    use bitcoin::Transaction;
     use floresta_common::get_spk_hash;
+
     use super::KvDatabase;
-    use crate::{AddressCacheDatabase, CachedAddress, CachedTransaction, Stats};
+    use crate::AddressCacheDatabase;
+    use crate::CachedAddress;
+    use crate::CachedTransaction;
+    use crate::Stats;
 
     fn get_test_db() -> KvDatabase {
         let test_id = rand::random::<u32>();
