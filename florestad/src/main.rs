@@ -105,6 +105,6 @@ async fn main() {
             florestad.wait_shutdown().await;
             break;
         }
-        async_std::task::sleep(Duration::from_secs(1)).await;
+        async_std::task::sleep(Duration::from_secs(5)).await;
     }
 }
