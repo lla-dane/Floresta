@@ -1019,6 +1019,7 @@ dependencies = [
  "sha2",
  "thiserror",
  "toml 0.5.11",
+ "zstd 0.13.1",
 ]
 
 [[package]]
